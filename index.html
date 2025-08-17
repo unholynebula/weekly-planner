@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Weekly To-Do Planner</title>
+  <style>
+    :root{
+      --bg:#0f1220; --card:#171b2e; --muted:#8a94a6; --text:#eef2ff;
+      --accent:#6a83ff; --accent-2:#61dba3; --danger:#ff6b6b;
+      --chip:#111529; --chip-border:#2a3355; --chip-on:#26306a;
+      --shadow:0 8px 22px rgba(0,0,0,.45); --radius:14px
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif}
+    .app{max-width:980px;margin:0 auto;padding:12px}
+
+    /* header */
+    .header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 10px}
+    .title{font-size:20px;font-weight:800}
+    #todayLabel{color:var(--muted);white-space:nowrap;font-size:14px}
+
+    /* tabs top */
+    .tabs{display:flex;gap:10px;margin:8px 0 14px}
+    .tab{flex:1;text-align:center;cursor:pointer;padding:12px;border-radius:999px;background:#1a203a;border:1px solid #2b3357;color:#cbd5ff;font-size:16px}
+    .tab.active{background:linear-gradient(180deg,var(--accent),#576bdf);border-color:var(--accent);color:#fff;box-shadow:var(--shadow)}
+
+    .grid{display:grid;grid-template-columns:1fr;gap:16px}
+    .card{background:linear-gradient(180deg,#1a1f33,#161a2b);border:1px solid #232948;border-radius:var(--radius);box-shadow:var(--shadow)}
+    .card h2{margin:0;padding:14px 14px 0;font-size:17px;color:#cdd6f4}
+    .card .body{padding:14px}
+
+    label{font-size:14px;color:#c9d2f6;display:block;margin-bottom:6px}
+    input[type="text"], textarea{
+      width:100%;padding:12px 14px;border-radius:12px;border:1px solid #2b3357;background:#111529;color:var(--text);font-size:16px
+    }
+    textarea{resize:vertical;min-height:92px}
+
+    /* toggle chips (buttons) */
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:10px 14px;border-radius:999px;background:var(--chip);
+      border:1px solid var(--chip-border);color:#cfd6ff;font-size:15px;cursor:pointer;user-select:none
+    }
+    .chip.active{background:var(--chip-on);border-color:var(--accent);color:#fff;box-shadow:0 0 0 2px rgba(106,131,255,.15) inset}
+    .chip:active{transform:translateY(1px)}
+
+    .actions{display:flex;gap:10px;justify-content:space-between;margin-top:12px}
+    .btn{flex:1;min-width:120px;background:#1e2647;border:1px solid #2c3560;color:#eaf0ff;padding:12px;border-radius:12px;cursor:pointer;font-size:16px}
+    .btn.primary{background:linear-gradient(180deg,#6a83ff,#576bdf);border-color:#6a83ff}
+    .btn.danger{background:linear-gradient(180deg,#ff7f7f,#db5656);border-color:#ff7f7f}
+
+    .tasks{display:flex;flex-direction:column;gap:10px}
+    .task{display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid #273056;border-radius:12px;background:#121731;font-size:14px}
+    .task .meta{font-size:12px;color:#9aa6c6}
+    .task .title{font-weight:600;font-size:15px}
+    .task .buttons{display:flex;gap:8px;flex-wrap:wrap}
+    .task .btn{flex:1;min-width:100px}
+
+    .section{margin-top:8px}
+    .section h3{margin:6px 0 8px;font-size:16px;color:#d7defc}
+    .checklist{display:flex;flex-direction:column;gap:10px}
+    .item{display:flex;align-items:center;gap:12px;padding:12px;border:1px dashed #2a345c;border-radius:12px;font-size:16px}
+    .item input[type="checkbox"]{-webkit-appearance:auto;appearance:auto;width:20px;height:20px;accent-color:var(--accent-2)}
+    .empty{padding:10px;color:var(--muted);font-size:14px}
+    .pill{margin-left:auto;display:inline-block;padding:4px 8px;border-radius:999px;background:#1b2344;border:1px solid #2b3566;font-size:12px;color:#aebaf0}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div class="title">Weekly To-Do Planner</div>
+      <div class="muted" id="todayLabel"></div>
+    </div>
+
+    <!-- TABS (top) -->
+    <div class="tabs">
+      <button class="tab" data-tab="plan">Plan</button>
+      <button class="tab active" data-tab="today">Today</button>
+    </div>
+
+    <!-- TODAY TAB (default visible) -->
+    <div class="tab-panel" id="todayPanel">
+      <div class="card">
+        <h2>Today's Checklist</h2>
+        <div class="body">
+          <div class="section"><h3>Morning</h3><div class="checklist" id="list-morning"></div></div>
+          <div class="section"><h3>Afternoon</h3><div class="checklist" id="list-afternoon"></div></div>
+          <div class="section"><h3>Evening</h3><div class="checklist" id="list-evening"></div></div>
+          <div class="section"><h3>Night</h3><div class="checklist" id="list-night"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLAN TAB (secondary) -->
+    <div class="tab-panel" id="planPanel" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <h2>Add / Edit Task</h2>
+          <div class="body">
+            <form id="taskForm" autocomplete="off">
+              <input type="hidden" id="taskId" />
+              <div class="section">
+                <label for="title">Title</label>
+                <input id="title" type="text" placeholder="e.g., Push-ups, Study English, Groceries" required />
+              </div>
+              <div class="section">
+                <label>Days of the week</label>
+                <div class="chips" id="daysChips" aria-label="Choose days"></div>
+              </div>
+              <div class="section">
+                <label>Times of day</label>
+                <div class="chips" id="timesChips" aria-label="Choose times"></div>
+              </div>
+              <div class="section">
+                <label for="notes">Notes (optional)</label>
+                <textarea id="notes" placeholder="Add context, targets, links…"></textarea>
+              </div>
+              <div class="actions">
+                <button type="button" class="btn" id="resetBtn">Reset</button>
+                <button type="submit" class="btn primary">Save Task</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>All Tasks</h2>
+          <div class="body">
+            <div class="tasks" id="tasksList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==== storage & helpers ==== */
+    const LS_TASKS='weekly_tasks_v1', LS_COMPLETIONS='task_completions_v1';
+    const TIMES=['morning','afternoon','evening','night'];
+    const DAYS=[{idx:0,label:'Sun'},{idx:1,label:'Mon'},{idx:2,label:'Tue'},{idx:3,label:'Wed'},{idx:4,label:'Thu'},{idx:5,label:'Fri'},{idx:6,label:'Sat'}];
+
+    const loadTasks=()=>JSON.parse(localStorage.getItem(LS_TASKS)||'[]');
+    const saveTasks=a=>localStorage.setItem(LS_TASKS,JSON.stringify(a));
+    const loadCompletions=()=>JSON.parse(localStorage.getItem(LS_COMPLETIONS)||'{}');
+    const saveCompletions=o=>localStorage.setItem(LS_COMPLETIONS,JSON.stringify(o));
+    const uid=()=>Math.random().toString(36).slice(2,10);
+    const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+    const esc=s=>String(s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+    /* ==== toggle buttons (chips) ==== */
+    function renderDayChips(){
+      const c=document.getElementById('daysChips'); c.innerHTML='';
+      for(const d of DAYS){
+        const x=document.createElement('button');
+        x.type='button'; x.className='chip'; x.dataset.value=String(d.idx); x.textContent=d.label;
+        x.addEventListener('click',()=>x.classList.toggle('active'));
+        c.appendChild(x);
+      }
+    }
+    function renderTimeChips(){
+      const c=document.getElementById('timesChips'); c.innerHTML='';
+      for(const t of TIMES){
+        const x=document.createElement('button');
+        x.type='button'; x.className='chip'; x.dataset.value=t; x.textContent=t[0].toUpperCase()+t.slice(1);
+        x.addEventListener('click',()=>x.classList.toggle('active'));
+        c.appendChild(x);
+      }
+    }
+    function getFormSelections(){
+      const days=[...document.querySelectorAll('#daysChips .chip.active')].map(b=>+b.dataset.value);
+      const times=[...document.querySelectorAll('#timesChips .chip.active')].map(b=>b.dataset.value);
+      return {days,times};
+    }
+    function setFormSelections(days,times){
+      document.querySelectorAll('#daysChips .chip').forEach(b=>b.classList.toggle('active',days?.includes(+b.dataset.value)));
+      document.querySelectorAll('#timesChips .chip').forEach(b=>b.classList.toggle('active',times?.includes(b.dataset.value)));
+    }
+    function resetForm(){
+      document.getElementById('taskId').value='';
+      document.getElementById('title').value='';
+      document.getElementById('notes').value='';
+      setFormSelections([],[]);
+    }
+
+    /* ==== plan list ==== */
+    function renderTasks(){
+      const list=document.getElementById('tasksList'); const tasks=loadTasks(); list.innerHTML='';
+      if(!tasks.length){ list.innerHTML='<div class="empty">No tasks yet. Add something above.</div>'; return; }
+      for(const t of tasks){
+        const el=document.createElement('div'); el.className='task';
+        const days=t.days.map(d=>DAYS.find(x=>x.idx===d)?.label).join(', ');
+        const times=t.times.map(x=>x[0].toUpperCase()+x.slice(1)).join(', ');
+        el.innerHTML=`
+          <div class="title">${esc(t.title)}</div>
+          <div class="meta">${days||'—'} • ${times||'—'}${t.notes?' • '+esc(t.notes):''}</div>
+          <div class="buttons">
+            <button class="btn" data-edit="${t.id}">Edit</button>
+            <button class="btn danger" data-del="${t.id}">Delete</button>
+          </div>`;
+        list.appendChild(el);
+      }
+      list.onclick=e=>{
+        const editId=e.target?.getAttribute?.('data-edit');
+        const delId=e.target?.getAttribute?.('data-del');
+        if(editId){
+          const t=loadTasks().find(x=>x.id===editId);
+          if(t){
+            document.getElementById('taskId').value=t.id;
+            document.getElementById('title').value=t.title;
+            document.getElementById('notes').value=t.notes||'';
+            setFormSelections(t.days,t.times);
+            window.scrollTo({top:0,behavior:'smooth'});
+          }
+        }
+        if(delId){ saveTasks(loadTasks().filter(x=>x.id!==delId)); renderTasks(); renderToday(); }
+      };
+    }
+
+    /* ==== today ==== */
+    function renderToday(){
+      const dlabel=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+      document.getElementById('todayLabel').textContent=dlabel;
+
+      const tasks=loadTasks(); const dayIdx=new Date().getDay();
+      const todays=tasks.filter(t=>t.days.includes(dayIdx));
+      const buckets={morning:[],afternoon:[],evening:[],night:[]};
+      for(const t of todays){ for(const time of t.times){ if(buckets[time]) buckets[time].push(t); } }
+
+      for(const time of TIMES){
+        const c=document.getElementById(`list-${time}`); c.innerHTML='';
+        if(!buckets[time].length){ c.innerHTML='<div class="empty">—</div>'; continue; }
+        const comp=loadCompletions()[todayKey()]||{};
+        for(const t of buckets[time]){
+          const key=`${t.id}:${time}`;
+          const item=document.createElement('label'); item.className='item';
+          item.innerHTML=`
+            <input type="checkbox" ${comp[key]?'checked':''} data-key="${key}">
+            <div>
+              <div class="title">${esc(t.title)}</div>
+              ${t.notes?`<div class="muted">${esc(t.notes)}</div>`:''}
+            </div>
+            <span class="pill">${time[0].toUpperCase()+time.slice(1)}</span>`;
+          c.appendChild(item);
+        }
+        c.onchange=e=>{
+          if(e.target && e.target.matches('input[type="checkbox"][data-key]')){
+            const key=e.target.getAttribute('data-key'); const date=todayKey();
+            const all=loadCompletions(); all[date]=all[date]||{};
+            if(e.target.checked) all[date][key]=true; else delete all[date][key];
+            saveCompletions(all);
+          }
+        };
+      }
+    }
+
+    /* ==== events ==== */
+    document.getElementById('taskForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      const id=document.getElementById('taskId').value || uid();
+      const title=document.getElementById('title').value.trim();
+      const notes=document.getElementById('notes').value.trim();
+      const {days,times}=getFormSelections();
+      if(!title || !days.length || !times.length){ alert('Fill all required fields'); return; }
+      const arr=loadTasks(); const idx=arr.findIndex(x=>x.id===id);
+      const task={id:title?id:uid(), title, notes, days, times};
+      if(idx>=0) arr[idx]=task; else arr.push(task);
+      saveTasks(arr); resetForm(); renderTasks(); renderToday();
+    });
+    document.getElementById('resetBtn').addEventListener('click', resetForm);
+
+    // top tabs (Today default)
+    function switchTab(tab){
+      const plan=document.getElementById('planPanel');
+      const today=document.getElementById('todayPanel');
+      document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+      if(tab==='today'){ today.style.display='block'; plan.style.display='none'; document.querySelector('[data-tab="today"]').classList.add('active'); renderToday();}
+      else { plan.style.display='block'; today.style.display='none'; document.querySelector('[data-tab="plan"]').classList.add('active'); }
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+    document.querySelector('[data-tab="today"]').addEventListener('click',()=>switchTab('today'));
+    document.querySelector('[data-tab="plan"]').addEventListener('click',()=>switchTab('plan'));
+
+    // init
+    (function init(){
+      renderDayChips(); renderTimeChips(); renderTasks(); renderToday();
+      switchTab('today'); // ensure Today is the main tab on load
+    })();
+  </script>
+</body>
+</html>
